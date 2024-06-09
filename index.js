@@ -73,14 +73,18 @@ const scheduleEmail = (jobId, email, subject, body, sendAt) => {
       }
     );
     delete jobs[jobId];
-    Job.deleteOne({ jobId }, (err) => {
-      if (err) {
+    Job.deleteOne({ jobId })
+      .then(() => {
+        logger.info(`Job ${jobId} deleted successfully`);
+      })
+      .catch((err) => {
         logger.error(`Failed to delete job ${jobId}: ${err}`);
-      }
-    });
+      });
   });
 
   jobs[jobId] = job;
+  logger.info(`New job scheduled: jobId ${jobId}, sendAt ${sendAt}`);
+
 };
 
 const loadJobs = async () => {
@@ -112,8 +116,14 @@ app.delete("/cancel-email/:jobId", async (req, res) => {
   if (job) {
     job.cancel();
     delete jobs[jobId];
-    await Job.deleteOne({ jobId });
-    res.json({ message: "Job cancelled successfully" });
+    try {
+      await Job.deleteOne({ jobId });
+      logger.info(`Job ${jobId} deleted successfully`);
+      res.json({ message: "Job cancelled successfully" });
+    } catch (err) {
+      logger.error(`Failed to delete job ${jobId}: ${err}`);
+      res.status(500).json({ error: err.message });
+    }
   } else {
     res.status(404).json({ message: "Job not found" });
   }
