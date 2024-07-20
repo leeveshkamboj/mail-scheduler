@@ -59,10 +59,10 @@ const scheduleEmail = (jobId, email, subject, body, sendAt) => {
   const job = schedule.scheduleJob(sendAt, () => {
     transporter.sendMail(
       {
-        from: process.env.SMTP_FROM_EMAIL,
+        from: `"Just Caffeinated" <${process.env.SMTP_FROM_EMAIL}>`,
         to: email,
         subject: subject,
-        text: body,
+        html: body,
       },
       (error, info) => {
         if (error) {
@@ -84,7 +84,6 @@ const scheduleEmail = (jobId, email, subject, body, sendAt) => {
 
   jobs[jobId] = job;
   logger.info(`New job scheduled: jobId ${jobId}, sendAt ${sendAt}`);
-
 };
 
 const loadJobs = async () => {
@@ -137,7 +136,7 @@ app.post("/send-email", (req, res) => {
       from: process.env.SMTP_FROM_EMAIL,
       to: email,
       subject: subject,
-      text: body,
+      html: body,
     },
     (error, info) => {
       if (error) {
