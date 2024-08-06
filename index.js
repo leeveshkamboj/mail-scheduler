@@ -6,6 +6,7 @@ const dotenv = require("dotenv");
 const schedule = require("node-schedule");
 const winston = require("winston");
 const path = require("path");
+const puppeteer = require("puppeteer");
 
 dotenv.config();
 
@@ -128,15 +129,30 @@ app.delete("/cancel-email/:jobId", async (req, res) => {
   }
 });
 
-app.post("/send-email", (req, res) => {
-  const { email, subject, body } = req.body;
+app.post("/send-email", async (req, res) => {
+  const { email, subject, body, isInvoice } = req.body;
+  let pdfBuffer;
+  if (isInvoice) {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.setContent(body);
+    pdfBuffer = await page.pdf({ format: "A4" });
+    await browser.close();
+  }
 
   transporter.sendMail(
     {
-      from: process.env.SMTP_FROM_EMAIL,
+      from: `"Just Caffeinated" <${process.env.SMTP_FROM_EMAIL}>`,
       to: email,
       subject: subject,
       html: body,
+      attachments: isInvoice && [
+        {
+          filename: "invoice.pdf",
+          content: pdfBuffer,
+          encoding: "base64",
+        },
+      ],
     },
     (error, info) => {
       if (error) {
